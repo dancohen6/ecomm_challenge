@@ -1,28 +1,52 @@
 const router = require('express').Router();
 const { Category, Product } = require('../../models');
-
+Category.hasMany(Product)
 // The `/api/categories` endpoint
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
+  const product = await Product.findAll()
+  const categories = await Category.findAll({include: Product})
+  res.send(categories)
   // find all categories
   // be sure to include its associated Products
 });
 
-router.get('/:id', (req, res) => {
-  // find one category by its `id` value
-  // be sure to include its associated Products
+router.get('/:id', async (req, res) => {
+  const cat_id = req.params.id;
+
+  const category = await Category.findByPk(cat_id);
+
+  if (category) {
+    res.send(category);
+  } else res.send('No category found with that id.');
 });
 
-router.post('/', (req, res) => {
-  // create a new category
+
+router.post('/', async (req, res) => {
+ const newCat = Category.create(req.body)
+ res.send(newCat)
 });
 
 router.put('/:id', (req, res) => {
-  // update a category by its `id` value
+  Category.update(req.body, {
+    where: {
+      id: req.params.id,
+    },
+  })
 });
 
 router.delete('/:id', (req, res) => {
-  // delete a category by its `id` value
+  Category.destroy({
+    where: {
+       id: req.params.id
+    }
+  }).then(function(rowDeleted){ 
+    if(rowDeleted === 1){
+       res.send('Deleted successfully');
+     }
+  }, function(err){
+      console.log(err); 
+  })
 });
 
 module.exports = router;

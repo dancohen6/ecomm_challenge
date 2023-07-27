@@ -1,19 +1,31 @@
 const router = require('express').Router();
 const { Product, Category, Tag, ProductTag } = require('../../models');
 
-// The `/api/products` endpoint
+
+Product.belongsTo(Category)
+Product.belongsToMany(Tag, {through: 'product_tags'})
 
 // get all products
-router.get('/', (req, res) => {
-  // find all products
-  // be sure to include its associated Category and Tag data
+router.get('/',  async (req, res) => {
+  const categories = await Category.findAll()
+  const products = await Product.findAll({include: Category, Tag})
+    res.send(products);
 });
 
+  
 // get one product
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
+  const prod_id = req.params.id;
+
+  const product = await Product.findByPk(prod_id, {include: Category, Tag});
+
+  if (product) {
+    res.send(product);
+  } else res.send('No products found with that id.');
+});
   // find a single product by its `id`
   // be sure to include its associated Category and Tag data
-});
+
 
 // create new product
 router.post('/', (req, res) => {
@@ -56,36 +68,33 @@ router.put('/:id', (req, res) => {
     },
   })
     .then((product) => {
-      if (req.body.tagIds && req.body.tagIds.length) {
-        
-        ProductTag.findAll({
-          where: { product_id: req.params.id }
-        }).then((productTags) => {
-          // create filtered list of new tag_ids
-          const productTagIds = productTags.map(({ tag_id }) => tag_id);
-          const newProductTags = req.body.tagIds
-          .filter((tag_id) => !productTagIds.includes(tag_id))
-          .map((tag_id) => {
-            return {
-              product_id: req.params.id,
-              tag_id,
-            };
-          });
-
-            // figure out which ones to remove
-          const productTagsToRemove = productTags
-          .filter(({ tag_id }) => !req.body.tagIds.includes(tag_id))
-          .map(({ id }) => id);
-                  // run both actions
-          return Promise.all([
-            ProductTag.destroy({ where: { id: productTagsToRemove } }),
-            ProductTag.bulkCreate(newProductTags),
-          ]);
-        });
-      }
-
-      return res.json(product);
+      // find all associated tags from ProductTag
+      return ProductTag.findAll({ where: { product_id: req.params.id } });
     })
+    .then((productTags) => {
+      // get list of current tag_ids
+      const productTagIds = productTags.map(({ tag_id }) => tag_id);
+      // create filtered list of new tag_ids
+      const newProductTags = req.body.tagIds
+        .filter((tag_id) => !productTagIds.includes(tag_id))
+        .map((tag_id) => {
+          return {
+            product_id: req.params.id,
+            tag_id,
+          };
+        });
+      // figure out which ones to remove
+      const productTagsToRemove = productTags
+        .filter(({ tag_id }) => !req.body.tagIds.includes(tag_id))
+        .map(({ id }) => id);
+
+      // run both actions
+      return Promise.all([
+        ProductTag.destroy({ where: { id: productTagsToRemove } }),
+        ProductTag.bulkCreate(newProductTags),
+      ]);
+    })
+    .then((updatedProductTags) => res.json(updatedProductTags))
     .catch((err) => {
       // console.log(err);
       res.status(400).json(err);
@@ -93,7 +102,22 @@ router.put('/:id', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
+
+  Product.destroy({
+    where: {
+       id: req.params.id
+    }
+  }).then(function(rowDeleted){ 
+    if(rowDeleted === 1){
+       res.send('Deleted successfully');
+     }
+  }, function(err){
+      console.log(err); 
+  })
+  
+  
+})
   // delete one product by its `id` value
-});
+
 
 module.exports = router;
