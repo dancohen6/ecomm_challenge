@@ -1,6 +1,7 @@
 const express = require('express');
 const routes = require('./routes');
-const db = require('./config/connection')
+const db = require('./config/connection');
+const sequelize = require('sequelize');
 
 
 const app = express();
@@ -16,3 +17,9 @@ db.sync().then(() =>
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}!`);
 }));
+
+// sequelize.sync({ force: false }).then(() => {
+//   app.listen(PORT, () => {
+//     console.log(`App listening on port ${PORT}!`); 
+//   });
+// });

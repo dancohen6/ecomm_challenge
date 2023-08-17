@@ -6,7 +6,7 @@ Category.hasMany(Product)
 router.get('/', async (req, res) => {
   const product = await Product.findAll()
   const categories = await Category.findAll({include: Product})
-  res.send(categories)
+  res.json(categories)
   // find all categories
   // be sure to include its associated Products
 });
